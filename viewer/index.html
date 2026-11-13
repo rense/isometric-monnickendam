@@ -321,6 +321,11 @@
   }
   #make-dialog nav button:hover, #make-dialog nav a:hover { border-color: #8a5a2b; color: #8a5a2b; }
   #make-dialog nav .close { margin-left: auto; }
+  #attribution { display: none; }
+  @media (max-width: 640px), (max-height: 700px) {
+    #attribution { display: block; position: fixed; z-index: 50; left: 8px; bottom: 2px; padding: 1px 5px; background: var(--panel); color: var(--fg); font: 12px/1.5 var(--body); border-radius: 3px; }
+    #attribution a { color: inherit; }
+  }
   @media (max-width: 640px) {
     #make { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
     #minimap-frame, #readout { display: none; }
@@ -394,6 +399,8 @@
   <div class="credits" data-en-html="Data: &lt;a href=&quot;https://3dbag.nl&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;3D BAG&lt;/a&gt;, BGT, AHN and aerial photo via &lt;a href=&quot;https://www.pdok.nl&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;PDOK&lt;/a&gt;, &lt;a href=&quot;https://www.openstreetmap.org/copyright&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;© OpenStreetMap contributors&lt;/a&gt;">Data: <a href="https://3dbag.nl" target="_blank" rel="noopener">3D BAG</a>, BGT, AHN en luchtfoto via <a href="https://www.pdok.nl" target="_blank" rel="noopener">PDOK</a>, <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a></div>
   <div class="credits"><a href="credits.html">Bronnen / Credits</a> · <a href="https://github.com/jankeesvw/isometric-helenaveen">Original by jankeesvw</a></div>
 </div>
+
+<div id="attribution"><a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a> · <a href="credits.html" data-en="Sources">Bronnen</a></div>
 
 <div id="minimap-frame" class="panel" aria-hidden="true"><div id="minimap"></div></div>
 
@@ -698,7 +705,7 @@ Werk stap voor stap, controleer de licenties van de data die je gebruikt, en vra
       id: 'map',
       // The map, and over it once more its buildings and trees on a transparent layer (map.json "objects"), so that
       // cars and walkers behind them can be drawn in between.
-      tileSources: [first.tiles || 'helenaveen_files/', ...(first.objects ? [first.objects] : [])].map(dzi),
+      tileSources: [first.tiles || 'monnickendam_files/', ...(first.objects ? [first.objects] : [])].map(dzi),
       silenceMultiImageWarnings: true,
       showNavigationControl: false,
       showNavigator: true,
@@ -718,6 +725,15 @@ Werk stap voor stap, controleer de licenties van de data die je gebruikt, en vra
       gestureSettingsMouse: { clickToZoom: false, dblClickToZoom: true },
       preserveImageSizeOnResize: true,
     });
+    // The navigator may start hidden on mobile; resize it when its container becomes visible.
+    new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (width > 1 && height > 1) {
+        viewer.navigator.viewport.resize(new OpenSeadragon.Point(width, height), true);
+        viewer.navigator.viewport.goHome(true);
+        viewer.navigator.forceRedraw();
+      }
+    }).observe(document.getElementById('minimap'));
     viewer.addHandler('open', () => {
       if (!openPin()) goHome(true);
       updateZoom();
@@ -1126,7 +1142,7 @@ Werk stap voor stap, controleer de licenties van de data die je gebruikt, en vra
     const h = hotspots.find((q) => q.name === p.name);
     if (h) openInfo(h);
     else closeInfo();
-    flyTo(p.x, p.y, p.h, p.name === 'Kloosterdijk' ? 0.22 : 1.6, !h, h ? infoEl.offsetHeight / 2 + 12 : 0);
+    flyTo(p.x, p.y, p.h, p.name === 'Kloosterdijk' ? 0.16 : 1.6, !h, h ? infoEl.offsetHeight / 2 + 12 : 0);
     found.textContent = h ? '' : p.note ? `${p.name}: ${T(p.note)}` : p.name;
   }
 

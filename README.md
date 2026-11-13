@@ -35,7 +35,7 @@ The viewer starts at the Speeltoren; street lighting and passing birds use the h
 
 - [3DBAG](https://docs.3dbag.nl/en/copyright/): TU Delft 3D geoinformation research group and 3DGI, CC BY 4.0. Geometry adapted for rendering.
 - [BGT](https://api.pdok.nl/kadaster/bgt/ogc/v1?f=html): Kadaster, CC0 1.0.
-- [AHN](https://www.ahn.nl/open-data): open data, free use without restrictions; obtained through PDOK.
+- [AHN](https://www.ahn.nl/open-data): CC0 1.0, as declared in the PDOK WMS capabilities for the service used here.
 - [Aerial imagery](https://www.beeldmateriaal.nl/dataroom): Beeldmateriaal Nederland, CC BY 4.0. Colours simplified and used on ground and roofs.
 - BAG addresses: Kadaster / PDOK Locatieserver.
 - [OpenStreetMap contributors](https://www.openstreetmap.org/copyright): ODbL 1.0. The derived OSM JSON files are distributed under ODbL 1.0.
@@ -45,4 +45,4 @@ The viewer starts at the Speeltoren; street lighting and passing birds use the h
 
 ## Publish
 
-Point `origin` to your own GitHub repository, enable Pages from `gh-pages` at `/`, then run `./deploy.sh`. The deployment script replaces that branch with the current generated site. Do not point it at the original author's repository.
+Point `origin` to your own GitHub repository and run `./deploy.sh`. The script enables Pages from `gh-pages` at `/` if needed and replaces that branch with the current generated site. Do not point it at the original author's repository.
