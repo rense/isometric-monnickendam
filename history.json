@@ -1,0 +1,84 @@
+{
+ "stops": [
+  {
+   "n": 1,
+   "year": "Monnickendam",
+   "title": "Speeltoren",
+   "text": "Het Waterlandsmuseum is gebouwd rond de middeleeuwse Speeltoren. Het vertelt over Waterland, van scheepsbouw en visserij tot de rokerijen van Monnickendam.",
+   "x": 131113.9,
+   "y": 496901.8,
+   "h": 0,
+   "zoom": 1.0,
+   "source": {
+    "label": "Waterlandsmuseum de Speeltoren",
+    "url": "https://www.despeeltoren.nl/"
+   },
+   "more": "https://www.despeeltoren.nl/",
+   "photos": []
+  },
+  {
+   "n": 2,
+   "year": "Monnickendam",
+   "title": "Lutherse Kerk",
+   "text": "Deze zaalkerk dateert uit het midden van de achttiende eeuw. Het aangrenzende clubhuis staat op nummer 41.",
+   "x": 131290.5,
+   "y": 496836.1,
+   "h": 0,
+   "zoom": 1.0,
+   "source": {
+    "label": "Protestantse Gemeente Monnickendam",
+    "url": "https://www.pgmonnickendam.nl/gebouwen"
+   },
+   "more": "https://www.pgmonnickendam.nl/gebouwen",
+   "photos": []
+  },
+  {
+   "n": 3,
+   "year": "Monnickendam",
+   "title": "Weeshuis",
+   "text": "Dit renaissancecomplex stamt uit de eerste helft van de zeventiende eeuw. Het staat aan het Weezenland, dicht bij de Grote Kerk.",
+   "x": 131106.9,
+   "y": 496725.4,
+   "h": 0,
+   "zoom": 1.0,
+   "source": {
+    "label": "Protestantse Gemeente Monnickendam",
+    "url": "https://www.pgmonnickendam.nl/gebouwen"
+   },
+   "more": "https://www.pgmonnickendam.nl/gebouwen",
+   "photos": []
+  },
+  {
+   "n": 4,
+   "year": "Monnickendam",
+   "title": "Grote Kerk",
+   "text": "De Grote of Sint Nicolaaskerk is een laatgotische, driebeukige hallenkerk aan de oude stadsrand. De toren is al van ver te zien.",
+   "x": 130873.9,
+   "y": 496611.8,
+   "h": 0,
+   "zoom": 1.0,
+   "source": {
+    "label": "Protestantse Gemeente Monnickendam",
+    "url": "https://www.pgmonnickendam.nl/gebouwen"
+   },
+   "more": "https://www.pgmonnickendam.nl/gebouwen",
+   "photos": []
+  },
+  {
+   "n": 5,
+   "year": "Monnickendam",
+   "title": "Kloosterdijk",
+   "text": "De Kloosterdijk met zijn huizen en boerderijen. Alle gebouwen binnen deze kaart komen uit 3DBAG; de adressen zijn te vinden via het zoekveld.",
+   "x": 130070.7,
+   "y": 497793.0,
+   "h": 0,
+   "zoom": 0.5,
+   "source": {
+    "label": "PDOK / BAG",
+    "url": "https://www.pdok.nl/"
+   },
+   "more": null,
+   "photos": []
+  }
+ ]
+}
