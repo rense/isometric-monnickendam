@@ -22,8 +22,11 @@ echo "Pushed $(find site -type f | wc -l) files to gh-pages"
 # so ask for one more build before giving up.
 repo=$(echo "$remote" | sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##')
 if ! gh api "repos/$repo/pages" >/dev/null 2>&1; then
-  printf '%s' '{"source":{"branch":"gh-pages","path":"/"},"build_type":"legacy"}' | \
-    gh api -X POST "repos/$repo/pages" --input - >/dev/null
+  if ! printf '%s' '{"source":{"branch":"gh-pages","path":"/"},"build_type":"legacy"}' | \
+      gh api -X POST "repos/$repo/pages" --input - >/dev/null 2>&1; then
+    # Pages can become available between the first read and creation.
+    gh api "repos/$repo/pages" >/dev/null
+  fi
 fi
 for attempt in 1 2; do
   for _ in $(seq 60); do
