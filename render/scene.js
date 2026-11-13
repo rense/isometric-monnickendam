@@ -1,4 +1,4 @@
-// Isometric scene of Helenaveen, rendered tile by tile by render/run.mjs.
+// Isometric scene of Monnickendam, rendered tile by tile by render/run.mjs.
 // World units are meters: x east, y up, z south, origin at the center of the 3 x 3 km area.
 import * as THREE from 'three';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -47,7 +47,7 @@ function nearestRoof(c) {
   return best;
 }
 
-// Facades by construction year (BAG): the eras of a Peel village.
+// Facades by construction year (BAG): construction eras.
 const ERAS = [
   [1945, [[rgb(138, 68, 50), 4], [rgb(118, 58, 44), 3], [rgb(158, 90, 64), 2], [rgb(226, 220, 206), 1]], rgb(236, 234, 226)],
   [1970, [[rgb(160, 88, 62), 4], [rgb(176, 106, 74), 3], [rgb(140, 78, 58), 2], [rgb(200, 172, 132), 1]], rgb(232, 230, 222)],
@@ -464,7 +464,7 @@ async function makeRoads(renderer, area) {
 }
 
 function makeSlab(area) {
-  // Peat over sand: the soil Helenaveen was dug out of.
+  // Stylized earth layers beneath the map; not a geological profile.
   const c = document.createElement('canvas');
   c.width = 4;
   c.height = 280;

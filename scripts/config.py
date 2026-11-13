@@ -7,8 +7,8 @@ ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw"
 BUILD = ROOT / "data" / "build"
 
-# Helenaveen with the Soemeersingel north to the Willem III-hoeve: 3.5 x 5.5 km.
-XMIN, YMIN, XMAX, YMAX = 189850, 376350, 193350, 381850
+# Monnickendam, harbour and the entire Kloosterdijk: 4 x 3.5 km.
+XMIN, YMIN, XMAX, YMAX = 129000, 495000, 133000, 498500
 CX, CY = (XMIN + XMAX) / 2, (YMIN + YMAX) / 2
 
 # Downloads and ground textures come in square chunks of this many meters.
@@ -26,5 +26,17 @@ def write_area():
     """The renderer and the viewer read the area from here."""
     BUILD.mkdir(parents=True, exist_ok=True)
     (BUILD / "area.json").write_text(
-        json.dumps({"xmin": XMIN, "ymin": YMIN, "xmax": XMAX, "ymax": YMAX, "cx": CX, "cy": CY, "chunk": CHUNK, "nx": NX, "ny": NY})
+        json.dumps(
+            {
+                "xmin": XMIN,
+                "ymin": YMIN,
+                "xmax": XMAX,
+                "ymax": YMAX,
+                "cx": CX,
+                "cy": CY,
+                "chunk": CHUNK,
+                "nx": NX,
+                "ny": NY,
+            }
+        )
     )

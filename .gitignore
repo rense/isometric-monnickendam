@@ -4,3 +4,4 @@ out/
 site/
 .venv/
 __pycache__/
+*.log

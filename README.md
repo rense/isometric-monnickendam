@@ -1,30 +1,48 @@
-# Isometric Helenaveen
+# Isometric Monnickendam
 
-Hi, I'm [@jankeesvw](https://x.com/intent/follow?screen_name=jankeesvw) on X. I rebuilt my village Helenaveen in isometric pixel art, with Claude Code and nothing but open data. See it live at [jankeesvw.github.io/isometric-helenaveen](https://jankeesvw.github.io/isometric-helenaveen/).
+An isometric pixel-art map of Monnickendam, the harbour and the full Kloosterdijk, including its houses and farms. Adapted from [Isometric Helenaveen by jankeesvw](https://github.com/jankeesvw/isometric-helenaveen).
 
-A zoomable isometric pixel-art map of Helenaveen, 3.5 × 5.5 km from the A67 north along the Soemeersingel to the Willem III-hoeve, in the spirit of [isometric.nyc](https://cannoneyed.com/projects/isometric-nyc). Where that project painted every tile with a fine-tuned image model, this one is rendered procedurally from Dutch open data, so it is exact, seamless and rebuilds in about two minutes.
+## Area and data
 
-## Pipeline
+`scripts/config.py` sets a 4 × 3.5 km area in RD New (EPSG:28992): x 129000–133000, y 495000–498500. PDOK's Kloosterdijk road geometry lies inside this boundary (x 129349–130848, y 497304–498190).
 
-Run `./build.sh` for everything. The steps:
+The Dutch sources are retained: 3DBAG LoD2.2 buildings and roof geometry; BGT ground surfaces; PDOK aerial imagery; AHN surface and bare-earth heights; BAG addresses; OpenStreetMap roads, paths, pitches and walking routes. All buildings in the area are processed, rather than selecting only landmarks. BAG addresses inside the area are searchable.
 
-1. `scripts/fetch.py` downloads the raw data into `data/raw/`: 3D BAG buildings (LoD2.2 with roof shapes), BGT surfaces (roads, water, plots, vegetation), the PDOK aerial photo at 25 cm and AHN surface and terrain heights at 50 cm.
-2. `scripts/landmarks.py` names the places people look for: both churches, the parsonage and Sunday school of 1867, school De Peelparel, monuments, the sports park. It gives them their real colors (from Rijksmonumenten photos) and adds what 3D BAG smooths away, like the 26 m tower of the Sint-Willibrorduskerk and the roof turret of the Protestant church, both measured in AHN. `scripts/build_buildings.py` triangulates the 3D BAG solids and lays the aerial photo on every roof (`scripts/roof_atlas.py`): the photo is lined up with each footprint by matching edges (it is off by 1.2 m on average), each roof face is evened out so the photo's sun and shade don't double up with the renderer's lighting, and the result is reduced to a few flat colors so solar panels, skylights and chimneys show as clean shapes. 3D BAG cannot reconstruct greenhouses (lidar goes through glass), so those are extruded from their footprint with a gutter height based on the year of construction. Water tanks, feed silos and sheds come from the BGT.
-3. `scripts/build_trees.py` finds individual trees in the canopy height model (AHN surface minus terrain): local maxima for the tops, watershed segmentation for crown size, and the spring aerial photo to tell evergreens from deciduous trees. Municipal street trees from the BGT fill in what the lidar missed.
-4. `scripts/build_ground.py` paints the BGT polygons, plus football and tennis lines, the riding arenas and both graveyards from OpenStreetMap, in a fixed palette with patterns (furrows along each field's long axis, paving grids, ripples, a dark far bank on every ditch) and bakes hard sun shadows of the buildings and tree crowns into it.
-5. `render/scene.js` is a three.js scene with a 2:1 isometric orthographic camera. Window grids, brick plinths, metal cladding and greenhouse glass are drawn in the building shader, a post pass smooths the image with a Kuwahara filter (a painterly look without grain) and inks every depth step as an outline. Tree crowns are cel-shaded with three tones. `render/run.mjs` renders it in headless Chromium on the GPU (Vulkan), tile by tile with a view offset, so tiles line up exactly.
-6. `vips dzsave` cuts the stitched image into a Deep Zoom pyramid of WebP tiles, and `viewer/index.html` shows it with OpenSeadragon: tilt-shift blur, GPS coordinates under the cursor, a search box over every place and address (`scripts/build_places.py`), named buildings and places that light up on hover and open a card with their story, photo and links when clicked, grouped into series (Koningshoeven, Historische gebouwen, Oorlog en herdenking, Kunst, Verdwenen, Bedrijven) to step through like the tour (`scripts/landmarks.py`, `scripts/build_hotspots.py`; a link ending in `#koningshoeven` opens a series), a guided tour "Helenaveen van toen" along twenty historical places with photos from the Rijksdienst voor het Cultureel Erfgoed, each linking to its story on [Het Helenaveen van toen](https://www.helenaveenvantoen.nl/) (`scripts/build_history.py`; a link ending in `#van-toen` starts it), and a toggle for the walking routes and numbered junctions of the wandelknooppuntennetwerk and LAW 13 from OpenStreetMap (`scripts/build_routes.py`). Little cars, vans, trucks and cyclists drive the OpenStreetMap roads and cycle paths on the right-hand side, keeping their distance and passing behind buildings and under tree crowns: the renderer also writes a mask of everything that stands more than 30 cm above the ground (`--pass objects`), `site.sh` turns the map under that mask into a second, transparent tile layer, and the viewer draws whatever is behind something between the two layers, and now and then geese cross high up in a V (`scripts/build_traffic.py`). A link ending in `#Sint-Willibrorduskerk` or `#De-Peelparel` opens on that place. A compass button turns the map a quarter: the map is rendered from all four diagonal directions (`VIEWS` in `scripts/config.py`, `render/run.mjs --look`), and the viewer turns a still of the old view about the middle of the screen like a turntable while the new view turns in after it, keeping the spot in the middle in place; halfway through the turn the pixels grow coarse and fine again, like an old game console. The map opens on the village school, and the home button goes back there. A music button plays [My Street](https://opengameart.org/content/my-street) by congusbongus (CC0, from OpenGameArt) on a loop; it is off until a visitor turns it on, and the browser remembers that for next time. A moon button turns the map to evening (`viewer/og.png`, the picture for link previews, shows that evening): an SVG colour matrix (`#dusk`) puts the map, its traffic and the minimap in moonlight, and a canvas above it lights a lamp every 34 m along the village streets and the headlights and rear lights of every car and bike; it is remembered the same way. A click on the map, not on a place, drops a pin and writes it into the address with the zoom and direction (`?pin=51.38884,5.91741&zoom=1.23&view=135`), so that link opens on the same spot. Six people take a cold dip in a circle in the Helenavaart in front of In d'Ouwe Peel. The viewer speaks Dutch and English, after the browser's language (`?lang=en` or `?lang=nl` asks for one); static text carries its English in `data-en*` attributes, and the stories, kinds and photo credits from the data files are looked up by their Dutch in `viewer/en.json`. A button in the corner opens the prompt to make a map like this of another village, in either language, which tells the agent which Dutch data sources to swap for the open data of another country.
+## Build and view
 
-`./site.sh` cuts the rendered image into tiles and assembles `site/` without rendering anything; each run writes its tiles to a fresh `tiles-<stamp>/` folder so browsers never mix cached tiles of two versions. `./deploy.sh` publishes `site/` to the `gh-pages` branch as a single fresh commit, so the tiles never pile up in the history of `main`.
+Requirements: Python 3.11+, uv, Node.js, npm and libvips (`vips`).
 
-The camera looks north-east and the sun comes from the west-south-west (`scripts/sun.py`, mirrored in `render/scene.js`).
+```sh
+npm install
+npx playwright install chromium
+./build.sh
+python3 -m http.server 8000 -d site
+```
 
-Overlays (search, hover outlines, walking routes, the tour, traffic) are JSON files next to the tiles: changing them needs no rendering, only the small build script and `./deploy.sh`.
+Open http://localhost:8000. The build downloads raw data to `data/raw/`, makes meshes and textures in `data/build/`, renders four views and object masks to `out/`, and assembles the tiled viewer in `site/`. Downloads are cached. Rendering uses Metal on macOS and Vulkan elsewhere.
 
-## Iterating
+For this machine's Python certificate setup, the build was launched with `SSL_CERT_FILE=/etc/ssl/cert.pem`, `UV_SYSTEM_CERTS=true` and `UV_PYTHON=3.11`. These are environment settings, not a reason to disable certificate verification.
 
-`node render/run.mjs crop <x> <y> <w> <h> --scale 4 --out out/crop.png` renders one region of the full image in a second, which is the fastest way to try a shader or palette change. `node render/run.mjs crop 0 0 2546 1303 --scale 0.6` gives an overview of the whole map.
+`SCALE=3 ./build.sh` changes the rendered pixels per metre. `SCALE=3 ./site.sh` reassembles that render. Keep the same scale for both commands.
 
-## Data
+## Places and stories
 
-3D BAG (TU Delft, 3DGI, CC BY 4.0), BGT (CC0), AHN (CC0), BAG addresses and the aerial photo (Beeldmateriaal Nederland, CC BY 4.0), all via [PDOK](https://www.pdok.nl). Points of interest, pitches and graveyards from OpenStreetMap (ODbL). Building descriptions from Monumenten in Nederland: Noord-Brabant (1997).
+`scripts/landmarks.py` contains the Speeltoren, Grote Kerk, Lutherse Kerk, Weeshuis, harbour and Kloosterdijk. Stories are paraphrased from the [Waterlandsmuseum](https://www.despeeltoren.nl/) and [Protestantse Gemeente Monnickendam](https://www.pgmonnickendam.nl/gebouwen), with links in the viewer. `scripts/build_history.py` makes a short Monnickendam tour without importing the Helenaveen stories or photographs.
+
+The viewer starts at the Speeltoren; street lighting and passing birds use the historic centre. The Helenaveen canal swimmers are removed. The Kloosterdijk has a direct navigation button.
+
+## Licences and attribution
+
+- [3DBAG](https://docs.3dbag.nl/en/copyright/): TU Delft 3D geoinformation research group and 3DGI, CC BY 4.0. Geometry adapted for rendering.
+- [BGT](https://api.pdok.nl/kadaster/bgt/ogc/v1?f=html): Kadaster, CC0 1.0.
+- [AHN](https://www.ahn.nl/open-data): open data, free use without restrictions; obtained through PDOK.
+- [Aerial imagery](https://www.beeldmateriaal.nl/dataroom): Beeldmateriaal Nederland, CC BY 4.0. Colours simplified and used on ground and roofs.
+- BAG addresses: Kadaster / PDOK Locatieserver.
+- [OpenStreetMap contributors](https://www.openstreetmap.org/copyright): ODbL 1.0. The derived OSM JSON files are distributed under ODbL 1.0.
+- [My Street](https://opengameart.org/content/my-street), congusbongus: CC0.
+
+`viewer/credits.html` is published with the map. No landmark photos are copied. The upstream repository has no code licence file; this adaptation retains its attribution and does not assign a new licence to its code.
+
+## Publish
+
+Point `origin` to your own GitHub repository, enable Pages from `gh-pages` at `/`, then run `./deploy.sh`. The deployment script replaces that branch with the current generated site. Do not point it at the original author's repository.

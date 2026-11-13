@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from config import CHUNK, NX, NY, RAW, XMAX, XMIN, YMAX, YMIN
 
-UA = {"User-Agent": "isometric-helenaveen/0.1"}
+UA = {"User-Agent": "isometric-monnickendam/0.1"}
 RD = "http://www.opengis.net/def/crs/EPSG/0/28992"
 
 BGT_COLLECTIONS = [
@@ -44,10 +44,12 @@ BGT_COLLECTIONS = [
 def get(url, binary=False, tries=5):
     for attempt in range(tries):
         try:
-            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=120) as r:
+            with urllib.request.urlopen(
+                urllib.request.Request(url, headers=UA), timeout=120
+            ) as r:
                 data = r.read()
                 return data if binary else json.loads(data)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             if attempt == tries - 1:
                 raise
             print(f"retry {attempt + 1} {url[:100]}: {e}", file=sys.stderr)
@@ -78,7 +80,13 @@ def fetch_bgt(coll):
     if out.exists():
         return
     q = urllib.parse.urlencode(
-        {"bbox": f"{XMIN},{YMIN},{XMAX},{YMAX}", "bbox-crs": RD, "crs": RD, "limit": 1000, "f": "json"}
+        {
+            "bbox": f"{XMIN},{YMIN},{XMAX},{YMAX}",
+            "bbox-crs": RD,
+            "crs": RD,
+            "limit": 1000,
+            "f": "json",
+        }
     )
     url = f"https://api.pdok.nl/lv/bgt/ogc/v1/collections/{coll}/items?{q}"
     feats = []
@@ -114,7 +122,9 @@ def fetch_aerial(ix, iy, chunk=CHUNK, res=0.25):
             "FORMAT": "image/jpeg",
         }
     )
-    out.write_bytes(get(f"https://service.pdok.nl/hwh/luchtfotorgb/wms/v1_0?{q}", binary=True))
+    out.write_bytes(
+        get(f"https://service.pdok.nl/hwh/luchtfotorgb/wms/v1_0?{q}", binary=True)
+    )
 
 
 def fetch_ahn(cov, ix, iy, chunk=CHUNK):
@@ -133,17 +143,25 @@ def fetch_ahn(cov, ix, iy, chunk=CHUNK):
 
 
 def fetch_addresses():
-    """Every BAG address in Helenaveen, for the viewer's search box."""
+    """Every BAG address in Monnickendam, for the viewer's search box."""
     out = RAW / "addresses.json"
     if out.exists():
         return
     pts, start = [], 0
     while True:
         q = urllib.parse.urlencode(
-            {"q": "*", "fq": ["woonplaatsnaam:Helenaveen", "type:adres"], "fl": "weergavenaam,centroide_rd", "rows": 100, "start": start},
+            {
+                "q": "*",
+                "fq": ["woonplaatsnaam:Monnickendam", "type:adres"],
+                "fl": "weergavenaam,centroide_rd",
+                "rows": 100,
+                "start": start,
+            },
             doseq=True,
         )
-        d = get(f"https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?{q}")["response"]
+        d = get(f"https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?{q}")[
+            "response"
+        ]
         for doc in d["docs"]:
             x, y = (float(v) for v in doc["centroide_rd"][6:-1].split())
             pts.append((x, y, doc["weergavenaam"]))
@@ -153,19 +171,6 @@ def fetch_addresses():
     out.write_text(json.dumps(pts))
 
 
-def overpass(out, q, what):
-    """Run an Overpass query into out (Overpass is often busy, so try a few servers)."""
-    for host in ("overpass-api.de/api/interpreter", "overpass.private.coffee/api/interpreter", "maps.mail.ru/osm/tools/overpass/api/interpreter"):
-        try:
-            req = urllib.request.Request(f"https://{host}", data=urllib.parse.urlencode({"data": q}).encode(), headers=UA)
-            with urllib.request.urlopen(req, timeout=180) as r:
-                out.write_bytes(r.read())
-            return
-        except Exception as e:  # noqa: BLE001
-            print(f"overpass {host}: {e}", file=sys.stderr)
-    print(f"OpenStreetMap unavailable; {what} are skipped", file=sys.stderr)
-
-
 def osm_bbox():
     from geo import rd_to_wgs
 
@@ -173,49 +178,100 @@ def osm_bbox():
     return f"{min(lats)},{min(lons)},{max(lats)},{max(lons)}"
 
 
-def fetch_osm():
-    """Pitches, graveyards and points of interest from OpenStreetMap."""
-    out = RAW / "osm_landmarks.json"
-    if out.exists():
+def fetch_osm_map():
+    """Read small OSM map extracts when public Overpass servers are unavailable."""
+    outputs = [
+        RAW / name
+        for name in ("osm_landmarks.json", "osm_routes.json", "osm_roads.json")
+    ]
+    if all(path.exists() for path in outputs):
         return
-    bbox = osm_bbox()
-    q = f"""[out:json][timeout:90];
-( nwr["military"]({bbox}); way["leisure"="pitch"]({bbox}); nwr["landuse"="cemetery"]({bbox});
-  nwr["amenity"="place_of_worship"]({bbox}); nwr["tourism"]({bbox}); nwr["historic"]({bbox}); );
-out geom tags;"""
-    overpass(out, q, "pitches and graveyards")
+    south, west, north, east = map(float, osm_bbox().split(","))
+    elements = {}
 
+    def tile(w, s, e, n, depth=0):
+        url = f"https://api.openstreetmap.org/api/0.6/map.json?bbox={w},{s},{e},{n}"
+        try:
+            page = get(url, tries=2)
+        except urllib.error.HTTPError as error:
+            if error.code != 400 or depth >= 4:
+                raise
+            mx, my = (w + e) / 2, (s + n) / 2
+            for box in ((w, s, mx, my), (mx, s, e, my), (w, my, mx, n), (mx, my, e, n)):
+                tile(*box, depth + 1)
+            return
+        for el in page["elements"]:
+            elements[(el["type"], el["id"])] = el
+        print(f"OSM map extract: {len(elements)} elements", file=sys.stderr)
 
-def fetch_routes():
-    """Walking routes and the numbered walking-junction network (wandelknooppunten) from OpenStreetMap."""
-    out = RAW / "osm_routes.json"
-    if out.exists():
-        return
-    bbox = osm_bbox()
-    q = f"""[out:json][timeout:120];
-( relation["route"~"^(hiking|foot|walking)$"]({bbox}); node["rwn_ref"]({bbox}); );
-out geom;"""
-    overpass(out, q, "walking routes")
-
-
-def fetch_roads():
-    """The roads, cycle paths, footpaths and farm tracks that people use, from OpenStreetMap, with node ids to find
-    junctions."""
-    out = RAW / "osm_roads.json"
-    if out.exists():
-        return
-    bbox = osm_bbox()
-    kinds = "motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|unclassified|residential|living_street|service"
-    q = f"""[out:json][timeout:120];
-( way["highway"~"^({kinds})$"]({bbox}); way["highway"~"^(cycleway|footway|path|pedestrian|track|steps|bridleway)$"]({bbox}); );
-out geom;"""
-    overpass(out, q, "roads and paths for traffic")
+    mx, my = (west + east) / 2, (south + north) / 2
+    for box in (
+        (west, south, mx, my),
+        (mx, south, east, my),
+        (west, my, mx, north),
+        (mx, my, east, north),
+    ):
+        tile(*box)
+    for (kind, _), el in elements.items():
+        if kind == "way":
+            el["geometry"] = [
+                {"lat": node["lat"], "lon": node["lon"]}
+                for nid in el["nodes"]
+                if (node := elements.get(("node", nid)))
+            ]
+    for (kind, _), el in elements.items():
+        if kind == "relation":
+            for member in el.get("members", []):
+                way = (
+                    elements.get(("way", member["ref"]))
+                    if member["type"] == "way"
+                    else None
+                )
+                if way:
+                    member["geometry"] = way["geometry"]
+    all_elements = list(elements.values())
+    landmarks = [
+        el
+        for el in all_elements
+        if (t := el.get("tags", {}))
+        and (
+            "military" in t
+            or t.get("leisure") == "pitch"
+            or t.get("landuse") == "cemetery"
+            or t.get("amenity") == "place_of_worship"
+            or "tourism" in t
+            or "historic" in t
+        )
+    ]
+    routes = [
+        el
+        for el in all_elements
+        if el.get("tags", {}).get("route") in ("hiking", "foot", "walking")
+        or el.get("tags", {}).get("rwn_ref")
+    ]
+    roads = [
+        el
+        for el in all_elements
+        if el["type"] == "way" and el.get("tags", {}).get("highway")
+    ]
+    for path, selected in zip(outputs, (landmarks, routes, roads)):
+        path.write_text(json.dumps({"elements": selected}))
 
 
 def main():
     RAW.mkdir(parents=True, exist_ok=True)
-    jobs = [fetch_3dbag, fetch_addresses, fetch_osm, fetch_routes, fetch_roads, *(lambda c=c: fetch_bgt(c) for c in BGT_COLLECTIONS)]
-    jobs += [lambda c=c, i=i, j=j: fetch_ahn(c, i, j) for c in ("dsm_05m", "dtm_05m") for i in range(NX) for j in range(NY)]
+    jobs = [
+        fetch_3dbag,
+        fetch_addresses,
+        fetch_osm_map,
+        *(lambda c=c: fetch_bgt(c) for c in BGT_COLLECTIONS),
+    ]
+    jobs += [
+        lambda c=c, i=i, j=j: fetch_ahn(c, i, j)
+        for c in ("dsm_05m", "dtm_05m")
+        for i in range(NX)
+        for j in range(NY)
+    ]
     jobs += [lambda i=i, j=j: fetch_aerial(i, j) for i in range(NX) for j in range(NY)]
     with ThreadPoolExecutor(8) as pool:
         for fut in [pool.submit(j) for j in jobs]:

@@ -13,7 +13,6 @@ import subprocess
 import urllib.parse
 
 import numpy as np
-
 from build_history import commons_thumb, download
 from config import BUILD, CX, CY, VIEWS
 from geo import screen as project
@@ -30,7 +29,9 @@ def hull(pts):
     pts = sorted(set(map(tuple, np.round(pts, 2))))
     if len(pts) < 3:
         return pts
-    cross = lambda o, a, b: (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+    cross = lambda o, a, b: (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (
+        b[0] - o[0]
+    )
     lower, upper = [], []
     for p in pts:
         while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0:
@@ -53,27 +54,60 @@ def main():
     out = []
     for h in lm["hotspots"]:
         if "pid" in h or "pids" in h:
-            sel = np.isin(v[:, 9], [i for pid in h.get("pids", [h.get("pid")]) for i in parts.get(pid, [])])
+            sel = np.isin(
+                v[:, 9],
+                [
+                    i
+                    for pid in h.get("pids", [h.get("pid")])
+                    for i in parts.get(pid, [])
+                ],
+            )
             if not sel.any():
                 continue
             pts = [screen(v[sel, 0], v[sel, 1], v[sel, 2], look) for look in VIEWS]
         else:
             a = np.linspace(0, 2 * np.pi, 16, endpoint=False)
             x, z = h["x"] - CX + 5 * np.cos(a), CY - h["y"] + 5 * np.sin(a)
-            pts = [np.concatenate([screen(x, 0 * x, z, look), screen(x, 0 * x + 3, z, look)]) for look in VIEWS]
-        spot = {k: h[k] for k in ("name", "note", "kind", "text", "address", "web", "more", "stop") if h.get(k)}
+            pts = [
+                np.concatenate(
+                    [screen(x, 0 * x, z, look), screen(x, 0 * x + 3, z, look)]
+                )
+                for look in VIEWS
+            ]
+        spot = {
+            k: h[k]
+            for k in ("name", "note", "kind", "text", "address", "web", "more", "stop")
+            if h.get(k)
+        }
         spot["x"], spot["y"] = round(h["x"], 1), round(h["y"], 1)
-        spot["poly"] = [[[round(float(p[0]), 2), round(float(p[1]), 2)] for p in hull(view)] for view in pts]
+        spot["poly"] = [
+            [[round(float(p[0]), 2), round(float(p[1]), 2)] for p in hull(view)]
+            for view in pts
+        ]
         if "photo" in h:
             spot["photo"] = photo(*h["photo"])
         out.append(spot)
-    cats = [{"key": c["key"], "label": c["label"], "spots": walk([n for n, s in enumerate(out) if s["name"] in c["names"]], out)}
-            for c in lm["categories"]]
-    (BUILD / "hotspots.json").write_text(json.dumps({"views": list(VIEWS), "categories": cats, "spots": out}, ensure_ascii=False))
-    print(f"{len(out)} hotspots, {sum('text' in s or 'stop' in s for s in out)} with a story, {len(cats)} categories")
+    cats = [
+        {
+            "key": c["key"],
+            "label": c["label"],
+            "spots": walk(
+                [n for n, s in enumerate(out) if s["name"] in c["names"]], out
+            ),
+        }
+        for c in lm["categories"]
+    ]
+    (BUILD / "hotspots.json").write_text(
+        json.dumps(
+            {"views": list(VIEWS), "categories": cats, "spots": out}, ensure_ascii=False
+        )
+    )
+    print(
+        f"{len(out)} hotspots, {sum('text' in s or 'stop' in s for s in out)} with a story, {len(cats)} categories"
+    )
 
 
-def walk(idx, spots, start=(191850, 377850)):
+def walk(idx, spots, start=(131114, 496902)):
     """Order a category as a walk: the place nearest the village first, then each time the nearest next one."""
     pos = lambda i: (spots[i]["x"], spots[i]["y"])
     dist = lambda a, b: math.hypot(a[0] - b[0], a[1] - b[1])
@@ -92,8 +126,15 @@ def photo(name, credit):
     if not dst.exists():
         PHOTOS.mkdir(parents=True, exist_ok=True)
         dst.write_bytes(download(commons_thumb(name)))
-        subprocess.run(["magick", str(dst), "-resize", "640x640>", "-quality", "82", str(dst)], check=True)
-    return {"src": f"photos/{dst.name}", "credit": credit, "url": f"https://commons.wikimedia.org/wiki/File:{urllib.parse.quote(name)}"}
+        subprocess.run(
+            ["magick", str(dst), "-resize", "640x640>", "-quality", "82", str(dst)],
+            check=True,
+        )
+    return {
+        "src": f"photos/{dst.name}",
+        "credit": credit,
+        "url": f"https://commons.wikimedia.org/wiki/File:{urllib.parse.quote(name)}",
+    }
 
 
 if __name__ == "__main__":
